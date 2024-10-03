@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pong Game</title>
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #000;
+    }
+  </style>
+</head>
+<body>
+<canvas id="pongCanvas" width="750" height="585"></canvas>
+
+<script>
+  const canvas = document.getElementById('pongCanvas');
+  const ctx = canvas.getContext('2d');
+  const gridSize = 15;
+  const paddleHeight = gridSize * 5;
+  const maxPaddlePos = canvas.height - gridSize - paddleHeight;
+
+  let paddleVelocity = 4;
+  let ballVelocity = 2;
+
+  // Paddle Constructor
+  function Paddle(xPos) {
+    this.x = xPos;
+    this.y = (canvas.height / 2) - (paddleHeight / 2);
+    this.width = gridSize;
+    this.height = paddleHeight;
+    this.dy = 0;
+
+    this.move = function() {
+      this.y += this.dy;
+      if (this.y < gridSize) this.y = gridSize;
+      if (this.y > maxPaddlePos) this.y = maxPaddlePos;
+    };
+
+    this.render = function() {
+      ctx.fillRect(this.x, this.y, this.width, this.height);
+    };
+  }
+
+  // Create paddles
+  const leftPaddle = new Paddle(gridSize * 2);
+  const rightPaddle = new Paddle(canvas.width - gridSize * 3);
+
+  // Ball object
+  const ball = {
+    x: canvas.width / 2,
+    y: canvas.height / 2,
+    size: gridSize,
+    dx: ballVelocity,
+    dy: -ballVelocity,
+    isResetting: false,
+
+    move: function() {
+      this.x += this.dx;
+      this.y += this.dy;
+
+      // Ball collision with top/bottom walls
+      if (this.y < gridSize || this.y + this.size > canvas.height - gridSize) {
+        this.dy *= -1;
+      }
+    },
+
+    resetPosition: function() {
+      if (this.x < 0 || this.x > canvas.width) {
+        if (!this.isResetting) {
+          this.isResetting = true;
+          setTimeout(() => {
+            this.isResetting = false;
+            this.x = canvas.width / 2;
+            this.y = canvas.height / 2;
+            this.dx *= -1;
+          }, 400);
+        }
+      }
+    },
+
+    render: function() {
+      ctx.fillRect(this.x, this.y, this.size, this.size);
+    }
+  };
+
+  // Handle keyboard input for paddles
+  function handleKeys(e, down) {
+    const key = e.which;
+    if (key === 38 || key === 40) {
+      rightPaddle.dy = (key === 38) ? -paddleVelocity : paddleVelocity;
+      if (!down) rightPaddle.dy = 0;
+    }
+    if (key === 37 || key === 39) {
+      leftPaddle.dy = (key === 37) ? -paddleVelocity : paddleVelocity;
+      if (!down) leftPaddle.dy = 0;
+    }
+  }
+
+  // Add event listeners for keypresses
+  window.addEventListener('keydown', (e) => handleKeys(e, true));
+  window.addEventListener('keyup', (e) => handleKeys(e, false));
+
+  // Check collision between ball and paddles
+  function checkCollision(paddle) {
+    return ball.x < paddle.x + paddle.width &&
+           ball.x + ball.size > paddle.x &&
+           ball.y < paddle.y + paddle.height &&
+           ball.y + ball.size > paddle.y;
+  }
+
+  // Main game loop
+  function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Move paddles
+    leftPaddle.move();
+    rightPaddle.move();
+
+    // Move ball
+    ball.move();
+
+    // Ball collision with paddles
+    if (checkCollision(leftPaddle)) {
+      ball.dx = ballVelocity;
+    } else if (checkCollision(rightPaddle)) {
+      ball.dx = -ballVelocity;
+    }
+
+    // Reset ball if out of bounds
+    ball.resetPosition();
+
+    // Draw paddles and ball
+    ctx.fillStyle = 'green';
+    leftPaddle.render();
+    rightPaddle.render();
+    ball.render();
+
+    // Draw walls
+    ctx.fillRect(0, 0, canvas.width, gridSize);
+    ctx.fillRect(0, canvas.height - gridSize, canvas.width, gridSize);
+
+    // Draw middle dashed line
+    for (let i = gridSize; i < canvas.height - gridSize; i += gridSize * 2) {
+      ctx.fillRect(canvas.width / 2 - gridSize / 2, i, gridSize, gridSize);
+    }
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  // Start the game loop
+  gameLoop();
+
+</script>
+</body>
+</html>
